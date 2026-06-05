@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>學習轉盤</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Noto+Sans+TC:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #f5f3ee;
+    --surface: #ffffff;
+    --border: #ddd8cc;
+    --text: #2a2620;
+    --muted: #8a8070;
+    --gold: #b8860b;
+    --gold-light: #d4a020;
+    --outer-accent: #2563a8;
+    --mid-accent: #7c3aad;
+    --inner-accent: #1a7a50;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans TC', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  .page-header {
+    text-align: center;
+    padding: 2rem 1rem 1.2rem;
+  }
+
+  .page-header h1 {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 1.9rem;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 0.15em;
+    margin-bottom: 0.3rem;
+  }
+
+  .page-header p {
+    font-size: 0.82rem;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+
+  .main-layout {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+    padding: 0.5rem 2rem 3rem;
+    width: 100%;
+    max-width: 1050px;
+  }
+
+  .wheel-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+  }
+
+  .canvas-wrap {
+    position: relative;
+    width: 500px;
+    height: 500px;
+  }
+
+  canvas#wheel {
+    display: block;
+    cursor: pointer;
+    filter: drop-shadow(0 4px 24px rgba(0,0,0,0.13));
+    transition: filter 0.3s;
+  }
+
+  canvas#wheel:hover {
+    filter: drop-shadow(0 6px 32px rgba(0,0,0,0.2));
+  }
+
+  .center-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: var(--gold-light);
+    border: 3px solid var(--gold);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Noto Serif TC', serif;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+    z-index: 20;
+    box-shadow: 0 2px 12px rgba(180,130,10,0.35);
+    user-select: none;
+  }
+
+  .center-btn:hover {
+    background: var(--gold);
+    transform: translate(-50%, -50%) scale(1.06);
+  }
+
+  .center-btn:active {
+    transform: translate(-50%, -50%) scale(0.96);
+  }
+
+  .hint {
+    margin-top: 1rem;
+    font-size: 0.76rem;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+
+  .result-area {
+    margin-top: 1.2rem;
+    width: 100%;
+    max-width: 460px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.1rem 1.4rem;
+    min-height: 86px;
+    transition: all 0.4s;
+  }
+
+  .result-area.revealed {
+    border-color: var(--gold-light);
+    box-shadow: 0 2px 16px rgba(180,130,10,0.1);
+  }
+
+  .result-title {
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    margin-bottom: 0.65rem;
+    text-transform: uppercase;
+  }
+
+  .result-items {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .result-tag {
+    padding: 0.3rem 0.85rem;
+    border-radius: 20px;
+    font-size: 0.86rem;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .result-tag.show { opacity: 1; transform: translateY(0); }
+
+  .result-tag.outer {
+    background: #dbeafe;
+    border: 1px solid #2563a8;
+    color: #1e3a70;
+  }
+  .result-tag.mid {
+    background: #ede9fb;
+    border: 1px solid #7c3aad;
+    color: #4a1a80;
+  }
+  .result-tag.inner {
+    background: #d1fae5;
+    border: 1px solid #1a7a50;
+    color: #0a4a30;
+  }
+
+  .legend-area {
+    width: 210px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding-top: 0.5rem;
+  }
+
+  .legend-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.9rem 1rem;
+  }
+
+  .legend-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .legend-dot.outer { background: var(--outer-accent); }
+  .legend-dot.mid   { background: var(--mid-accent); }
+  .legend-dot.inner { background: var(--inner-accent); }
+
+  .legend-layer-name {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: 0.05em;
+  }
+
+  .legend-layer-desc {
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-left: 1.5rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+  }
+
+  .legend-items {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-left: 1.5rem;
+  }
+
+  .legend-item {
+    font-size: 0.73rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>學習轉盤</h1>
+  <p>點擊中央按鈕或任意點擊轉盤開始旋轉</p>
+</div>
+
+<div class="main-layout">
+  <div class="wheel-area">
+    <div class="canvas-wrap">
+      <canvas id="wheel" width="500" height="500"></canvas>
+      <button class="center-btn" id="spinBtn">旋轉</button>
+    </div>
+    <p class="hint">點擊旋轉 · 三層同時轉動 · 線對準即選中</p>
+    <div class="result-area" id="resultArea">
+      <div class="result-title">本次結果</div>
+      <div class="result-items" id="resultItems">
+        <span style="color: var(--muted); font-size:0.8rem;">尚未旋轉</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend-area">
+    <div style="font-family:'Noto Serif TC',serif; font-size:0.88rem; color:var(--gold); letter-spacing:0.1em; padding-bottom:0.5rem; border-bottom:1px solid var(--border);">圖例說明</div>
+
+    <div class="legend-card">
+      <div class="legend-card-header">
+        <span class="legend-dot outer"></span>
+        <span class="legend-layer-name">外層 — 今日科目</span>
+      </div>
+      <div class="legend-layer-desc">今天要讀的科目，共 10 科</div>
+      <div class="legend-items">
+        <span class="legend-item">國文、英文、數學</span>
+        <span class="legend-item">歷史、地理、公民</span>
+        <span class="legend-item">生物、地科、物理、化學</span>
+      </div>
+    </div>
+
+    <div class="legend-card">
+      <div class="legend-card-header">
+        <span class="legend-dot mid"></span>
+        <span class="legend-layer-name">中層 — 讀書時段</span>
+      </div>
+      <div class="legend-layer-desc">每 2 小時一格，共 12 個時段</div>
+      <div class="legend-items">
+        <span class="legend-item">0:00~2:00 … 22:00~24:00</span>
+      </div>
+    </div>
+
+    <div class="legend-card">
+      <div class="legend-card-header">
+        <span class="legend-dot inner"></span>
+        <span class="legend-layer-name">內層 — 完成獎勵</span>
+      </div>
+      <div class="legend-layer-desc">看手機獎勵時間，共 6 項</div>
+      <div class="legend-items">
+        <span class="legend-item">1、5、10、15、30、60 分</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('wheel');
+const ctx = canvas.getContext('2d');
+const cx = 250, cy = 250;
+
+const outerItems = ['國文','英文','數學','歷史','地理','公民','生物','地科','物理','化學'];
+const midItems = ['0:00~2:00','2:00~4:00','4:00~6:00','6:00~8:00','8:00~10:00','10:00~12:00','12:00~14:00','14:00~16:00','16:00~18:00','18:00~20:00','20:00~22:00','22:00~24:00'];
+const innerItems = ['手機 1分','手機 5分','手機 10分','手機 15分','手機 30分','手機 60分'];
+
+// Bright, light-background friendly colors
+// Outer: blue family alternating
+const outerColors = [
+  ['#bfdbfe','#93c5fd'],['#dbeafe','#bfdbfe'],['#93c5fd','#60a5fa'],
+  ['#c7d2fe','#a5b4fc'],['#bfdbfe','#93c5fd'],['#dbeafe','#bfdbfe'],
+  ['#a5b4fc','#818cf8'],['#93c5fd','#60a5fa'],['#c7d2fe','#a5b4fc'],['#bfdbfe','#93c5fd']
+];
+const outerTextColor = '#1e3a70';
+
+// Mid: purple/violet family
+const midColors = [
+  ['#ede9fb','#ddd6f7'],['#ddd6f7','#c4b5fd'],['#c4b5fd','#a78bfa'],
+  ['#ede9fb','#ddd6f7'],['#ddd6f7','#c4b5fd'],['#c4b5fd','#a78bfa'],
+  ['#ede9fb','#ddd6f7'],['#ddd6f7','#c4b5fd'],['#c4b5fd','#a78bfa'],
+  ['#ede9fb','#ddd6f7'],['#ddd6f7','#c4b5fd'],['#c4b5fd','#a78bfa']
+];
+const midTextColor = '#3b0764';
+
+// Inner: green family
+const innerColors = [
+  ['#d1fae5','#a7f3d0'],['#a7f3d0','#6ee7b7'],
+  ['#d1fae5','#a7f3d0'],['#a7f3d0','#6ee7b7'],
+  ['#d1fae5','#a7f3d0'],['#a7f3d0','#6ee7b7']
+];
+const innerTextColor = '#064e3b';
+
+let outerAngle = 0, midAngle = 0, innerAngle = 0;
+let spinning = false;
+let outerResult = null, midResult = null, innerResult = null;
+let phase = 'idle';
+let resultShown = false;
+
+// The selector line is a fixed vertical line from top of wheel to center (pointing down from 12 o'clock)
+// i.e. the "pointer" direction is -Math.PI/2 (top, 12 o'clock)
+const POINTER_ANGLE = -Math.PI / 2;
+
+function drawSegments(items, r1, r2, colors, textColor, rotAngle) {
+  const n = items.length;
+  const step = (Math.PI * 2) / n;
+  for (let i = 0; i < n; i++) {
+    const a0 = rotAngle + i * step;
+    const a1 = a0 + step;
+    const mid = a0 + step / 2;
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r2, a0, a1);
+    ctx.closePath();
+
+    const grad = ctx.createRadialGradient(cx, cy, r1 * 0.6, cx, cy, r2);
+    grad.addColorStop(0, colors[i % colors.length][0]);
+    grad.addColorStop(1, colors[i % colors.length][1]);
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(
+      cx + Math.cos(mid) * (r1 + (r2 - r1) * 0.54),
+      cy + Math.sin(mid) * (r1 + (r2 - r1) * 0.54)
+    );
+    ctx.rotate(mid + Math.PI / 2);
+
+    const bandWidth = r2 - r1 - 8;
+    const fontSize = Math.min(13, Math.max(9, bandWidth * 0.3));
+    ctx.font = `500 ${fontSize}px 'Noto Sans TC', sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = textColor;
+    ctx.fillText(items[i], 0, 0);
+    ctx.restore();
+  }
+}
+
+function drawRingBorder(r, color, width) {
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.stroke();
+}
+
+// Draw a continuous line from outer edge to center at POINTER_ANGLE (top)
+function drawSelectorLine() {
+  const px = cx + Math.cos(POINTER_ANGLE) * 236;
+  const py = cy + Math.sin(POINTER_ANGLE) * 236;
+
+  // Shadow glow
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,60,60,0.18)';
+  ctx.lineWidth = 6;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(px, py);
+  ctx.stroke();
+
+  // Main bright red line
+  ctx.strokeStyle = '#e53e3e';
+  ctx.lineWidth = 2.5;
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(px, py);
+  ctx.stroke();
+
+  // Arrow tip (small triangle at outer end)
+  ctx.translate(px, py);
+  ctx.rotate(POINTER_ANGLE - Math.PI / 2);
+  ctx.beginPath();
+  ctx.moveTo(0, -10);
+  ctx.lineTo(-5, 2);
+  ctx.lineTo(5, 2);
+  ctx.closePath();
+  ctx.fillStyle = '#e53e3e';
+  ctx.fill();
+  ctx.restore();
+}
+
+function highlightSelected(r1, r2, angle, count) {
+  const step = (Math.PI * 2) / count;
+  // Which segment is at POINTER_ANGLE?
+  const norm = ((POINTER_ANGLE - angle) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+  const idx = Math.floor(norm / step) % count;
+  const a0 = angle + idx * step;
+  const a1 = a0 + step;
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, r2, a0, a1);
+  ctx.arc(cx, cy, r1, a1, a0, true);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(229,62,62,0.12)';
+  ctx.fill();
+  ctx.strokeStyle = '#e53e3e';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+function getSelectedIdx(angle, count) {
+  const step = (Math.PI * 2) / count;
+  const norm = ((POINTER_ANGLE - angle) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+  return Math.floor(norm / step) % count;
+}
+
+function drawWheel() {
+  ctx.clearRect(0, 0, 500, 500);
+
+  // Background circle
+  ctx.beginPath();
+  ctx.arc(cx, cy, 240, 0, Math.PI * 2);
+  ctx.fillStyle = '#f8f6f0';
+  ctx.fill();
+  ctx.strokeStyle = '#ddd8cc';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  drawSegments(outerItems, 168, 236, outerColors, outerTextColor, outerAngle);
+  drawSegments(midItems, 86, 166, midColors, midTextColor, midAngle);
+  drawSegments(innerItems, 28, 84, innerColors, innerTextColor, innerAngle);
+
+  if (phase === 'done') {
+    highlightSelected(168, 236, outerAngle, outerItems.length);
+    highlightSelected(86, 166, midAngle, midItems.length);
+    highlightSelected(28, 84, innerAngle, innerItems.length);
+  }
+
+  drawRingBorder(236, 'rgba(37,99,168,0.4)', 1.5);
+  drawRingBorder(168, 'rgba(37,99,168,0.25)', 1);
+  drawRingBorder(166, 'rgba(124,58,173,0.25)', 0.8);
+  drawRingBorder(86, 'rgba(124,58,173,0.25)', 1);
+  drawRingBorder(84, 'rgba(26,122,80,0.25)', 0.8);
+  drawRingBorder(28, 'rgba(26,122,80,0.2)', 1);
+
+  // Center cap
+  ctx.beginPath();
+  ctx.arc(cx, cy, 27, 0, Math.PI * 2);
+  ctx.fillStyle = '#fff';
+  ctx.fill();
+  ctx.strokeStyle = '#d4a020';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Always draw the selector line on top
+  drawSelectorLine();
+}
+
+function ease(t) { return 1 - Math.pow(1 - t, 4); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+let spinDuration = 0, spinProgress = 0;
+let outerStart = 0, midStart = 0, innerStart = 0;
+let outerTarget = 0, midTarget = 0, innerTarget = 0;
+
+function startSpin() {
+  if (spinning) return;
+  spinning = true;
+  phase = 'spinning';
+  resultShown = false;
+
+  const outerTurns = 5 + Math.random() * 4;
+  const midTurns = 5 + Math.random() * 4;
+  const innerTurns = 5 + Math.random() * 4;
+
+  const outerStop = Math.floor(Math.random() * outerItems.length);
+  const midStop = Math.floor(Math.random() * midItems.length);
+  const innerStop = Math.floor(Math.random() * innerItems.length);
+
+  const outerStep = (Math.PI * 2) / outerItems.length;
+  const midStep = (Math.PI * 2) / midItems.length;
+  const innerStep = (Math.PI * 2) / innerItems.length;
+
+  outerStart = outerAngle;
+  midStart = midAngle;
+  innerStart = innerAngle;
+
+  // Spin so that segment outerStop aligns to POINTER_ANGLE
+  // Center of segment outerStop is at: angle + outerStop * outerStep + outerStep/2
+  // We want that center = POINTER_ANGLE
+  // So targetAngle = POINTER_ANGLE - outerStop * outerStep - outerStep/2
+  outerTarget = outerAngle + outerTurns * Math.PI * 2 + (POINTER_ANGLE - outerAngle - outerStop * outerStep - outerStep / 2);
+  midTarget = midAngle - midTurns * Math.PI * 2 - (POINTER_ANGLE - midAngle + midStop * midStep + midStep / 2) * -1;
+  innerTarget = innerAngle + innerTurns * Math.PI * 2 + (POINTER_ANGLE - innerAngle - innerStop * innerStep - innerStep / 2);
+
+  outerResult = outerStop;
+  midResult = midStop;
+  innerResult = innerStop;
+
+  spinDuration = 3200 + Math.random() * 1400;
+  spinProgress = 0;
+  let last = performance.now();
+
+  function frame(now) {
+    const dt = now - last; last = now;
+    spinProgress += dt;
+    const t = Math.min(spinProgress / spinDuration, 1);
+    const et = ease(t);
+    outerAngle = lerp(outerStart, outerTarget, et);
+    midAngle = lerp(midStart, midTarget, et);
+    innerAngle = lerp(innerStart, innerTarget, et);
+    drawWheel();
+    if (t < 1) {
+      requestAnimationFrame(frame);
+    } else {
+      outerAngle = outerTarget;
+      midAngle = midTarget;
+      innerAngle = innerTarget;
+      phase = 'done';
+      spinning = false;
+      drawWheel();
+      showResult();
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+function showResult() {
+  if (resultShown) return;
+  resultShown = true;
+  const area = document.getElementById('resultArea');
+  const items = document.getElementById('resultItems');
+  area.classList.add('revealed');
+  items.innerHTML = '';
+
+  // Use actual getSelectedIdx for accuracy
+  const oIdx = getSelectedIdx(outerAngle, outerItems.length);
+  const mIdx = getSelectedIdx(midAngle, midItems.length);
+  const iIdx = getSelectedIdx(innerAngle, innerItems.length);
+
+  const tags = [
+    { cls: 'outer', label: '📚 科目：' + outerItems[oIdx] },
+    { cls: 'mid',   label: '⏰ 時段：' + midItems[mIdx] },
+    { cls: 'inner', label: '📱 獎勵：' + innerItems[iIdx] }
+  ];
+  tags.forEach((t, i) => {
+    const el = document.createElement('span');
+    el.className = 'result-tag ' + t.cls;
+    el.textContent = t.label;
+    items.appendChild(el);
+    setTimeout(() => el.classList.add('show'), 150 + i * 180);
+  });
+}
+
+document.getElementById('spinBtn').addEventListener('click', startSpin);
+canvas.addEventListener('click', startSpin);
+drawWheel();
+</script>
+</body>
+</html>
